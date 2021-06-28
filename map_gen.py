@@ -9,15 +9,12 @@ class Level:
     1: floor
     """
 
-    def __init__(self, player, width=80, height=40):
-        self.player = player
-        self.width = width
-        self.height = height
+    def __init__(self, entities, width=80, height=40):
+        self.entities = entities
+        self.width, self.height = width, height
         self.tiles = np.zeros((width, height), dtype=np.int32)
 
-    def render(self, player):
-        px = player.x
-        py = player.y
+    def render(self):
         for x in range(self.width):
             for y in range(self.height):
                 tile = self.tiles[x, y]
@@ -29,7 +26,8 @@ class Level:
                     blt.print(x, y, "[color=green].")
                 elif tile == 3:
                     blt.print(x, y, "[color=red].")
-        blt.print(px, py, "[color=red]@")
+        for entity in self.entities:
+            blt.print(entity.x, entity.y, entity.symbol)
         blt.refresh()
         
     def create_level(self, display=False):
@@ -38,6 +36,8 @@ class Level:
         main_loop = self.get_loop_xys(radius, y_scaling, display=False, fill=False)
         rooms = self.create_rooms(main_loop, display)
         self.connect_rooms(rooms, display)
+        self.place_player()
+        self.render()
 
     def get_loop_xys(self, r, s, display, fill):
         coords = []
@@ -50,12 +50,12 @@ class Level:
             elif i > 0 and (x, y) != coords[-1]:
                 coords.append((x, y))
                 if fill: self.tiles[x, y] = 1
-                if display: self.render(self.player)
+                if display: self.render()
         return coords
 
     def create_rooms(self, coords, display):
         num_coords = len(coords)
-        scale = 10
+        scale = 5
         rooms = []
         for i in range(num_coords // scale):
             x, y = coords[np.random.randint(i*scale - 2, i*scale + 2)]
@@ -63,7 +63,7 @@ class Level:
             if room:
                 rooms.append(room)
                 if display: 
-                    self.render(self.player)
+                    self.render()
         rooms.append(rooms[0])
         return rooms
 
@@ -111,5 +111,11 @@ class Level:
                     self.tiles[end[0], end[1]:start[1]] = 1
                     self.tiles[end[0]:start[0], start[1]] = 1
             if display: 
-                self.render(self.player)
+                self.render()
+
+    def place_player(self):
+        player = self.entities[0]
+        player.x = np.random.randint(self.width)
+        player.y = np.random.randint(self.height)
+        if self.tiles[player.x, player.y] == 0: self.place_player()
 

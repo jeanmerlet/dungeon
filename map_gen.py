@@ -3,29 +3,25 @@ import numpy as np
 import shapes
 import time
 
-class Level:
-    """
-    0: wall
-    1: floor
-    """
+class Tile:
+    def __init__(self, blocked=True):
+        self.blocked = blocked
 
+class Level:
     def __init__(self, entities, width=80, height=40):
         self.entities = entities
         self.width, self.height = width, height
-        self.tiles = np.zeros((width, height), dtype=np.int32)
+        self.tiles = [[Tile() for j in range(height)] for i in range(width)]
 
     def render(self):
         for x in range(self.width):
             for y in range(self.height):
-                tile = self.tiles[x, y]
-                if tile == 0:
-                    blt.print(x, y, "[color=blue]#") 
-                elif tile == 1:
-                    blt.print(x, y, "[color=blue].")
-                elif tile == 2:
-                    blt.print(x, y, "[color=green].")
-                elif tile == 3:
-                    blt.print(x, y, "[color=red].")
+                tile = self.tiles[x][y]
+                if tile.blocked:
+                    blt.print(x, y, "[color=70,70,90]#") 
+                else:
+                    blt.print(x, y, "[color=220,220,150].")
+
         for entity in self.entities:
             blt.print(entity.x, entity.y, entity.symbol)
         blt.refresh()
@@ -33,13 +29,13 @@ class Level:
     def create_level(self, display=False):
         radius = self.width / 4
         y_scaling = self.height / self.width
-        main_loop = self.get_loop_xys(radius, y_scaling, display=False, fill=False)
-        rooms = self.create_rooms(main_loop, display)
-        self.connect_rooms(rooms, display)
+        main_loop = self._get_loop_xys(radius, y_scaling, display=False, dig=False)
+        rooms = self._create_rooms(main_loop, display)
+        self._connect_rooms(rooms, display)
         self.place_player()
         self.render()
 
-    def get_loop_xys(self, r, s, display, fill):
+    def _get_loop_xys(self, r, s, display, dig):
         coords = []
         pi_range = np.linspace(0, 2*np.pi, 1000)
         for i, t in enumerate(pi_range):
@@ -49,17 +45,17 @@ class Level:
                 coords.append((x, y))
             elif i > 0 and (x, y) != coords[-1]:
                 coords.append((x, y))
-                if fill: self.tiles[x, y] = 1
+                if dig: self.tiles[x, y].blocked = False
                 if display: self.render()
         return coords
 
-    def create_rooms(self, coords, display):
+    def _create_rooms(self, coords, display):
         num_coords = len(coords)
         scale = 5
         rooms = []
         for i in range(num_coords // scale):
             x, y = coords[np.random.randint(i*scale - 2, i*scale + 2)]
-            room = self.create_room(x, y)
+            room = self._create_room(x, y)
             if room:
                 rooms.append(room)
                 if display: 
@@ -67,28 +63,32 @@ class Level:
         rooms.append(rooms[0])
         return rooms
 
-    def create_room(self, x, y):
+    def _create_room(self, x, y):
         # new_x, new_y are top left floor tile of (rectangular) rooms
         # w, h are the number of floor tiles across and down in the room
         tries_remaining = 10
         while tries_remaining > 0:
             w = np.random.randint(4, 10)
             h = np.random.randint(3, 8)
-            if self.is_room_valid(x, y, w, h):
-                self.tiles[x:x+w, y:y+h] = 1
+            if self._is_room_valid(x, y, w, h):
+                for i in range(x, x+w):
+                    for j in range(y, y+h):
+                        self.tiles[i][j].blocked = False
                 return [x, y, w, h]
             else:
                 tries_remaining -= 1
         return None
 
-    def is_room_valid(self, x, y, w, h):
-        if np.any(self.tiles[x-3:x+w+5, y-3:y+h+5]):
-            return False
-        elif x+w+2 >= self.width or y+h+2 >= self.height:
-            return False
+    def _is_room_valid(self, x, y, w, h):
+        for i in range(x-3, x+w+5):
+            for j in range(y-3, y+h+5):
+                if i >= self.width or j >= self.height:
+                    return False
+                elif not self.tiles[i][j].blocked:
+                    return False
         return True
 
-    def connect_rooms(self, rooms, display):
+    def _connect_rooms(self, rooms, display):
         for i in range(len(rooms) - 1):
             x1, y1, w1, h1 = rooms[i]
             x2, y2, w2, h2 = rooms[i+1]
@@ -98,18 +98,26 @@ class Level:
                    y2 + np.random.randint(h2))
             if start[0] < end[0]:
                 if start[1] < end[1]:
-                    self.tiles[end[0], start[1]:end[1] + 1] = 1
-                    self.tiles[start[0]:end[0], start[1]] = 1
+                    for j in range(start[1], end[1] + 1):
+                        self.tiles[end[0]][j].blocked = False
+                    for i in range(start[0], end[0]):
+                        self.tiles[i][start[1]].blocked = False
                 else:
-                    self.tiles[start[0], end[1]:start[1]] = 1
-                    self.tiles[start[0]:end[0], end[1]] = 1
+                    for j in range(end[1], start[1] + 1):
+                        self.tiles[start[0]][j].blocked = False
+                    for i in range(start[0], end[0]):
+                        self.tiles[i][end[1]].blocked = False
             else: 
                 if start[1] < end[1]:
-                    self.tiles[start[0], start[1]:end[1] + 1] = 1
-                    self.tiles[end[0]:start[0], end[1]] = 1
+                    for j in range(start[1], end[1] + 1):
+                        self.tiles[start[0]][j].blocked = False
+                    for i in range(end[0], start[0]):
+                        self.tiles[i][end[1]].blocked = False
                 else:
-                    self.tiles[end[0], end[1]:start[1]] = 1
-                    self.tiles[end[0]:start[0], start[1]] = 1
+                    for j in range(end[1], start[1] + 1):
+                        self.tiles[end[0]][j].blocked = False
+                    for i in range(end[0], start[0]):
+                        self.tiles[i][start[1]].blocked = False
             if display: 
                 self.render()
 
@@ -117,5 +125,5 @@ class Level:
         player = self.entities[0]
         player.x = np.random.randint(self.width)
         player.y = np.random.randint(self.height)
-        if self.tiles[player.x, player.y] == 0: self.place_player()
+        if self.tiles[player.x][player.y].blocked: self.place_player()
 

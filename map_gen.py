@@ -4,12 +4,13 @@ import shapes
 import time
 
 class Tile:
-    def __init__(self, blocked=True):
+    def __init__(self, blocked=True, transparent=False):
         self.blocked = blocked
+        self.transparent = transparent
+        self.explored = False
 
 class Level:
-    def __init__(self, entities, width=80, height=40):
-        self.entities = entities
+    def __init__(self, width, height):
         self.width, self.height = width, height
         self.tiles = [[Tile() for j in range(height)] for i in range(width)]
 
@@ -22,17 +23,15 @@ class Level:
                 else:
                     blt.print(x, y, "[color=220,220,150].")
 
-        for entity in self.entities:
-            blt.print(entity.x, entity.y, entity.symbol)
         blt.refresh()
         
     def create_level(self, display=False):
+        if display: blt.refresh()
         radius = self.width / 4
         y_scaling = self.height / self.width
         main_loop = self._get_loop_xys(radius, y_scaling, display=False, dig=False)
         rooms = self._create_rooms(main_loop, display)
         self._connect_rooms(rooms, display)
-        self.place_player()
         self.render()
 
     def _get_loop_xys(self, r, s, display, dig):
@@ -45,7 +44,9 @@ class Level:
                 coords.append((x, y))
             elif i > 0 and (x, y) != coords[-1]:
                 coords.append((x, y))
-                if dig: self.tiles[x, y].blocked = False
+                if dig:
+                    self.tiles[x][y].blocked = False
+                    self.tiles[x][y].transparent = True
                 if display: self.render()
         return coords
 
@@ -74,6 +75,7 @@ class Level:
                 for i in range(x, x+w):
                     for j in range(y, y+h):
                         self.tiles[i][j].blocked = False
+                        self.tiles[i][j].transparent = True
                 return [x, y, w, h]
             else:
                 tries_remaining -= 1
@@ -100,30 +102,31 @@ class Level:
                 if start[1] < end[1]:
                     for j in range(start[1], end[1] + 1):
                         self.tiles[end[0]][j].blocked = False
+                        self.tiles[end[0]][j].transparent = True
                     for i in range(start[0], end[0]):
                         self.tiles[i][start[1]].blocked = False
+                        self.tiles[i][start[1]].transparent = True
                 else:
                     for j in range(end[1], start[1] + 1):
                         self.tiles[start[0]][j].blocked = False
+                        self.tiles[start[0]][j].transparent = True
                     for i in range(start[0], end[0]):
                         self.tiles[i][end[1]].blocked = False
+                        self.tiles[i][end[1]].transparent = True
             else: 
                 if start[1] < end[1]:
                     for j in range(start[1], end[1] + 1):
                         self.tiles[start[0]][j].blocked = False
+                        self.tiles[start[0]][j].transparent = True
                     for i in range(end[0], start[0]):
                         self.tiles[i][end[1]].blocked = False
+                        self.tiles[i][end[1]].transparent = True
                 else:
                     for j in range(end[1], start[1] + 1):
                         self.tiles[end[0]][j].blocked = False
+                        self.tiles[end[0]][j].transparent = True
                     for i in range(end[0], start[0]):
                         self.tiles[i][start[1]].blocked = False
+                        self.tiles[i][start[1]].transparent = True
             if display: 
                 self.render()
-
-    def place_player(self):
-        player = self.entities[0]
-        player.x = np.random.randint(self.width)
-        player.y = np.random.randint(self.height)
-        if self.tiles[player.x][player.y].blocked: self.place_player()
-

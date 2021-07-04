@@ -11,7 +11,10 @@ class Tile:
 
 class Level:
     def __init__(self, width, height):
+        blt.refresh()
         self.width, self.height = width, height
+        self.center_x = width // 2
+        self.center_y = height // 2
         self.tiles = [[Tile() for j in range(height)] for i in range(width)]
 
     def render(self):
@@ -26,20 +29,46 @@ class Level:
         blt.refresh()
         
     def create_level(self, display=False):
-        if display: blt.refresh()
-        radius = self.width / 4
+        ## main loop ##
+        radius = self.width / 5
         y_scaling = self.height / self.width
-        main_loop = self._get_loop_xys(radius, y_scaling, display=False, dig=False)
+        main_loop = self._get_loop_xys(self.center_x, self.center_y, radius,
+                                       y_scaling, display=False, dig=False)
         rooms = self._create_rooms(main_loop, display)
-        self._connect_rooms(rooms, display)
-        self.render()
+        num_rooms = len(rooms)
+        self._connect_rooms(rooms, display, connect_last=True)
+        ## side loop ##
+        radius = self.width / 7
+        anchor_rooms = []
+        anchor_idx = np.random.choice(np.arange(num_rooms))
+        anchor_rooms.append(rooms[anchor_idx])
+        anchor_rooms.append(rooms[(anchor_idx + 1) % num_rooms])
+        side_loop_cx, side_loop_cy = self._get_side_loop_center(anchor_rooms, radius, y_scaling)
+        #blt.print(side_loop_cx, side_loop_cy, "[color=red]*")
+        blt.refresh()
+        time.sleep(1)
+        x1, y1, w1, h1 = anchor_rooms[0]
+        cx1, cy1 = x1 + w1/2, y1 + h1/2
+        anchor_center_slope = (side_loop_cy - cy1) / (side_loop_cx - cx1)
+        rotation = np.arctan(anchor_center_slope)
+        if side_loop_cx > self.center_x:
+            rotation += np.pi
+        side_loop = self._get_loop_xys(side_loop_cx, side_loop_cy, radius, y_scaling,
+                                       display=False, dig=False, rotation=rotation)
+                                       #display=True, dig=True, rotation=rotation)
+        side_rooms = self._create_rooms(side_loop, display)
+        side_rooms = [anchor_rooms[0]] + side_rooms + [anchor_rooms[-1]]
+        self._connect_rooms(side_rooms, display, connect_last=False)
+        time.sleep(0.5)
 
-    def _get_loop_xys(self, r, s, display, dig):
+    def _get_loop_xys(self, cx, cy, r, s, display, dig, rotation=0):
+        dx = self.center_x - cx
+        dy = self.center_y - cy
         coords = []
         pi_range = np.linspace(0, 2*np.pi, 1000)
         for i, t in enumerate(pi_range):
-            x = round(r * np.cos(t) + self.width // 2)
-            y = round(r * s * np.sin(t) + self.height // 2)
+            x = round(r * np.cos(t + rotation) + self.width // 2) - dx
+            y = round(r * s * np.sin(t + rotation) + self.height // 2) - dy
             if i == 0:
                 coords.append((x, y))
             elif i > 0 and (x, y) != coords[-1]:
@@ -49,6 +78,29 @@ class Level:
                     self.tiles[x][y].transparent = True
                 if display: self.render()
         return coords
+
+    def _get_side_loop_center(self, rooms, radius, y_scaling):
+        x1, y1, w1, h1 = rooms[0]
+        x2, y2, w2, h2 = rooms[1]
+        cx1, cy1 = x1 + w1/2, y1 + h1/2
+        cx2, cy2 = x2 + w2/2, y2 + h2/2
+        midx, midy = (cx1 + cx2)/2, (cy1 + cy2)/2
+        #blt.print(round(cx1), round(cy1), "[color=red]1") 
+        #blt.print(round(cx2), round(cy2), "[color=red]2") 
+        #blt.print(round(midx), round(midy), "[color=red]M") 
+        #blt.refresh()
+        # ellipse centered at midpoint
+        bi_ellipse_coords = self._get_loop_xys(round(midx), round(midy), radius,
+                                               y_scaling, display=False, dig=False)
+        max_dist = 0
+        for coord in bi_ellipse_coords:
+            x, y = coord
+            dist = y_scaling * (x - self.center_x)**2 + (y - self.center_y)**2
+            if dist > max_dist:
+                max_dist = dist
+                center = coord
+
+        return center
 
     def _create_rooms(self, coords, display):
         num_coords = len(coords)
@@ -61,7 +113,7 @@ class Level:
                 rooms.append(room)
                 if display: 
                     self.render()
-        rooms.append(rooms[0])
+                    #time.sleep(0.1)
         return rooms
 
     def _create_room(self, x, y):
@@ -71,26 +123,30 @@ class Level:
         while tries_remaining > 0:
             w = np.random.randint(4, 10)
             h = np.random.randint(3, 8)
-            if self._is_room_valid(x, y, w, h):
-                for i in range(x, x+w):
-                    for j in range(y, y+h):
+            cx = x - w // 2
+            cy = y - h // 2
+            if self._is_room_valid(cx, cy, w, h):
+                for i in range(cx, cx+w):
+                    for j in range(cy, cy+h):
                         self.tiles[i][j].blocked = False
                         self.tiles[i][j].transparent = True
-                return [x, y, w, h]
+                return [cx, cy, w, h]
             else:
                 tries_remaining -= 1
         return None
 
     def _is_room_valid(self, x, y, w, h):
-        for i in range(x-3, x+w+5):
-            for j in range(y-3, y+h+5):
-                if i >= self.width or j >= self.height:
+        for i in range(x-3, x+w+3):
+            for j in range(y-3, y+h+3):
+                if not (0 < i < self.width and 0 < j < self.height):
                     return False
                 elif not self.tiles[i][j].blocked:
                     return False
         return True
 
-    def _connect_rooms(self, rooms, display):
+    def _connect_rooms(self, rooms, display, connect_last):
+        if connect_last:
+            rooms.append(rooms[0])
         for i in range(len(rooms) - 1):
             x1, y1, w1, h1 = rooms[i]
             x2, y2, w2, h2 = rooms[i+1]
@@ -130,3 +186,6 @@ class Level:
                         self.tiles[i][start[1]].transparent = True
             if display: 
                 self.render()
+                #time.sleep(0.2)
+        if connect_last:
+            rooms.pop()

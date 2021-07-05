@@ -8,12 +8,16 @@ from display import Display
 from fov import FieldOfView
 
 class Game:
-    def __init__(self):
+    def __init__(self, seed=None):
         blt.open()
         self.width, self.height = 80, 40
         blt.set(f'window: size={self.width}x{self.height}')
         self.event_handler = EventHandler
         self.quit = False
+        if not seed:
+            seed = np.random.randint(10000)
+        np.random.seed(seed)
+        print(f'seed: {seed}')
 
     def run(self):
         while not self.quit:
@@ -53,6 +57,7 @@ class Game:
         if not self.level.tiles[end_x][end_y].blocked:
             self.player.move(dx, dy)
 
+#a = Game(seed=3860)
 a = Game()
 a.new_game()
 a.run()

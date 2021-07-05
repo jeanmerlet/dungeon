@@ -35,31 +35,44 @@ class Level:
         main_loop = self._get_loop_xys(self.center_x, self.center_y, radius,
                                        y_scaling, display=False, dig=False)
         rooms = self._create_rooms(main_loop, display)
-        num_rooms = len(rooms)
         self._connect_rooms(rooms, display, connect_last=True)
-        ## side loop ##
+        ## side loops ##
         radius = self.width / 7
-        anchor_rooms = []
-        anchor_idx = np.random.choice(np.arange(num_rooms))
-        anchor_rooms.append(rooms[anchor_idx])
-        anchor_rooms.append(rooms[(anchor_idx + 1) % num_rooms])
-        side_loop_cx, side_loop_cy = self._get_side_loop_center(anchor_rooms, radius, y_scaling)
-        #blt.print(side_loop_cx, side_loop_cy, "[color=red]*")
-        blt.refresh()
-        time.sleep(1)
-        x1, y1, w1, h1 = anchor_rooms[0]
-        cx1, cy1 = x1 + w1/2, y1 + h1/2
-        anchor_center_slope = (side_loop_cy - cy1) / (side_loop_cx - cx1)
-        rotation = np.arctan(anchor_center_slope)
-        if side_loop_cx > self.center_x:
-            rotation += np.pi
-        side_loop = self._get_loop_xys(side_loop_cx, side_loop_cy, radius, y_scaling,
-                                       display=False, dig=False, rotation=rotation)
-                                       #display=True, dig=True, rotation=rotation)
-        side_rooms = self._create_rooms(side_loop, display)
-        side_rooms = [anchor_rooms[0]] + side_rooms + [anchor_rooms[-1]]
-        self._connect_rooms(side_rooms, display, connect_last=False)
-        time.sleep(0.5)
+        num_rooms = len(rooms)
+        loop_diff = -len(rooms) + 1
+        anchor_indices = np.arange(num_rooms)
+        for i in range(np.random.randint(3) + 1):
+            anchor_rooms = []
+            to_remove = []
+            anchor_idx_a = np.random.choice(anchor_indices)
+            anchor_idx_b = anchor_indices[(np.nonzero(anchor_indices == anchor_idx_a)[0][0] + 1) % num_rooms]
+            anchor_rooms.append(rooms[anchor_idx_a])
+            anchor_rooms.append(rooms[anchor_idx_b])
+            to_remove.append(anchor_idx_a)
+            to_remove.append(anchor_idx_b)
+            diff = anchor_idx_b - anchor_idx_a
+            if diff != 1 and diff != loop_diff : continue
+            anchor_indices = anchor_indices[np.in1d(anchor_indices, to_remove, invert=True)]
+            num_rooms = len(anchor_indices)
+            side_loop_cx, side_loop_cy = self._get_side_loop_center(anchor_rooms, radius, y_scaling)
+            #blt.print(side_loop_cx, side_loop_cy, "[color=red]*")
+            #blt.refresh()
+            #time.sleep(1)
+            x1, y1, w1, h1 = anchor_rooms[0]
+            cx1, cy1 = x1 + w1/2, y1 + h1/2
+            anchor_center_slope = (side_loop_cy - cy1) / (side_loop_cx - cx1)
+            rotation = np.arctan(anchor_center_slope)
+            if side_loop_cx > self.center_x:
+                rotation += np.pi
+            side_loop = self._get_loop_xys(side_loop_cx, side_loop_cy, radius, y_scaling,
+                                           display=False, dig=False, rotation=rotation)
+                                           #display=True, dig=True, rotation=rotation)
+            side_rooms = self._create_rooms(side_loop, display)
+            for room in side_rooms:
+                rooms.append(room)
+            side_rooms = [anchor_rooms[0]] + side_rooms + [anchor_rooms[-1]]
+            self._connect_rooms(side_rooms, display, connect_last=False)
+            time.sleep(0.5)
 
     def _get_loop_xys(self, cx, cy, r, s, display, dig, rotation=0):
         dx = self.center_x - cx
@@ -114,7 +127,10 @@ class Level:
                 if display: 
                     self.render()
                     #time.sleep(0.1)
-        return rooms
+        if len(rooms) > 0:
+            return rooms
+        else:
+            return self._create_rooms(coords, display)
 
     def _create_room(self, x, y):
         # new_x, new_y are top left floor tile of (rectangular) rooms

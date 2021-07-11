@@ -54,8 +54,12 @@ class Game:
         dx, dy = move
         end_x = self.player.x + dx
         end_y = self.player.y + dy
-        if not self.level.tiles[end_x][end_y].blocked:
-            self.player.move(dx, dy)
+        end_tile = self.level.tiles[end_x][end_y]
+        if not end_tile.blocked:
+            if not end_tile.has_blocking_entity:
+                self.player.move(dx, dy)
+            else:
+                print('blocking entity here')
 
 a = Game(1960)
 a.new_game()

@@ -1,13 +1,13 @@
 import numpy as np
 from actor import Actor
 
-def populate_rooms(entities, rooms, empty_room_prob=0.5):
+def populate_rooms(tiles, entities, rooms, empty_room_prob=0.5):
     monsters = _read_dgn_file('./entities/monsters.dgn')
     for room in rooms:
         if np.random.rand() > empty_room_prob:
-            _place_entities(entities, room, monsters)
+            _place_entities(tiles, entities, room, monsters)
 
-def _place_entities(entities, room, monsters):
+def _place_entities(tiles, entities, room, monsters):
     room_x, room_y, room_w, room_h = room
     if np.random.rand() < 0.5:
         monster_name = 'skitterling'
@@ -17,6 +17,7 @@ def _place_entities(entities, room, monsters):
     y = np.random.randint(room_y, room_y + room_h)
     coords = (x, y)
     monster = Actor(monster_name, monsters[monster_name]['symbol'], coords)
+    tiles[x][y].has_blocking_entity = True
     entities.append(monster)
 
 def _read_dgn_file(path):

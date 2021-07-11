@@ -9,6 +9,7 @@ class Tile:
         self.blocked = blocked
         self.transparent = transparent
         self.explored = False
+        self.has_blocking_entity = False
 
 class Level:
     def __init__(self, width, height):
@@ -75,7 +76,7 @@ class Level:
             self._connect_rooms(side_rooms, display, connect_last=False)
             #time.sleep(0.5)
 
-        populate.populate_rooms(entities, rooms)
+        populate.populate_rooms(self.tiles, entities, rooms)
 
     def _get_loop_xys(self, cx, cy, r, s, display, dig, rotation=0):
         dx = self.center_x - cx

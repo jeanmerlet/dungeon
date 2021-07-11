@@ -14,8 +14,10 @@ class Display:
         for x in range(self.width):
             for y in range(self.height):
                 tile = self.tiles[x][y]
-                if tile.explored:
-                    if self.fov_id[x][y] == self.player.fov_id:
+                #if tile.explored:
+                if True:
+                    #if self.fov_id[x][y] == self.player.fov_id:
+                    if True:
                         if not tile.blocked:
                             blt.print(x, y, "[color=220,220,150].")
                         else:
@@ -28,7 +30,8 @@ class Display:
 
         for entity in self.entities:
             x, y = entity.x, entity.y
-            if self.fov_id[x][y] == self.player.fov_id:
+            #if self.fov_id[x][y] == self.player.fov_id:
+            if True:
                 blt.print(entity.x, entity.y, entity.symbol)
         blt.refresh()
 

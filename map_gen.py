@@ -1,7 +1,8 @@
 from bearlibterminal import terminal as blt
 import numpy as np
-import shapes
 import time
+
+import populate
 
 class Tile:
     def __init__(self, blocked=True, transparent=False):
@@ -28,7 +29,7 @@ class Level:
 
         blt.refresh()
         
-    def create_level(self, display=False):
+    def create_level(self, entities, display=False):
         ## main loop ##
         radius = self.width / 5
         y_scaling = self.height / self.width
@@ -72,7 +73,9 @@ class Level:
                 rooms.append(room)
             side_rooms = [anchor_rooms[0]] + side_rooms + [anchor_rooms[-1]]
             self._connect_rooms(side_rooms, display, connect_last=False)
-            time.sleep(0.5)
+            #time.sleep(0.5)
+
+        populate.populate_rooms(entities, rooms)
 
     def _get_loop_xys(self, cx, cy, r, s, display, dig, rotation=0):
         dx = self.center_x - cx
@@ -126,7 +129,7 @@ class Level:
                 rooms.append(room)
                 if display: 
                     self.render()
-                    #time.sleep(0.1)
+                    #time.sleep(0.2)
         if len(rooms) > 0:
             return rooms
         else:
@@ -172,6 +175,7 @@ class Level:
                    y2 + np.random.randint(h2))
             if start[0] < end[0]:
                 if start[1] < end[1]:
+                    #self._step_connect(end[0], j)
                     for j in range(start[1], end[1] + 1):
                         self.tiles[end[0]][j].blocked = False
                         self.tiles[end[0]][j].transparent = True
@@ -205,3 +209,11 @@ class Level:
                 #time.sleep(0.2)
         if connect_last:
             rooms.pop()
+
+    def _step_connect(self, start, end):
+        for i in range(end - start):
+            tile = self.tiles[start][end]
+            if self.tiles:
+                self.tiles[end[0]][j].blocked = False
+                self.tiles[end[0]][j].transparent = True
+        

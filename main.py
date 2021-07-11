@@ -27,10 +27,10 @@ class Game:
         blt.close()
 
     def new_game(self):
-        self.player = Actor('player', '[color=amber]@', coords=[0, 0], fov_id=0, fov_radius=5)
+        self.player = Actor('player', '[color=amber]@', coords=[0, 0], fov_id=0, fov_radius=8)
         self.entities = [self.player]
         self.level = map_gen.Level(width=self.width, height=self.height)
-        self.level.create_level(display=True)
+        self.level.create_level(self.entities, display=True)
         self._place_player()
         self.fov = FieldOfView(self.level.tiles, self.width, self.height)
         self.fov.do_fov(self.player)
@@ -57,7 +57,6 @@ class Game:
         if not self.level.tiles[end_x][end_y].blocked:
             self.player.move(dx, dy)
 
-#a = Game(seed=3860)
-a = Game()
+a = Game(1960)
 a.new_game()
 a.run()

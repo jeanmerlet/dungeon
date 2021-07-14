@@ -9,7 +9,11 @@ class Tile:
         self.blocked = blocked
         self.transparent = transparent
         self.explored = False
-        self.has_blocking_entity = False
+    # replace this class with bit arrays:
+        # blocked bit array
+        # explored bit array
+        # transparent bit array
+    # numpy-afy the fuck out of everything breh
 
 class Level:
     def __init__(self, width, height):

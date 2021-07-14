@@ -58,7 +58,8 @@ class Game:
         if not end_tile.blocked:
             if not end_tile.has_blocking_entity:
                 self.player.move(dx, dy)
-            else:
+            elif end_tile.has_blocking_entity:
+                self.player.attack()
                 print('blocking entity here')
 
 a = Game(1960)

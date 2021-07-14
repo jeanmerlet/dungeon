@@ -13,7 +13,6 @@ class Tile:
         # blocked bit array
         # explored bit array
         # transparent bit array
-    # numpy-afy the fuck out of everything breh
 
 class Level:
     def __init__(self, width, height):
@@ -21,7 +20,10 @@ class Level:
         self.width, self.height = width, height
         self.center_x = width // 2
         self.center_y = height // 2
-        self.tiles = [[Tile() for j in range(height)] for i in range(width)]
+        self.blocking_tiles = np.ones((width, height), dtype=int)
+        self.opaque_tiles = np.ones((width, height), dtype=int)
+        self.explored_tiles = np.zeros((width, height), dtype=int)
+        #self.tiles = [[Tile() for j in range(height)] for i in range(width)]
 
     def render(self):
         for x in range(self.width):

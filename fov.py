@@ -7,8 +7,9 @@ class FieldOfView:
                      [0,  1, -1,  0,  0, -1,  1,  0],
                      [1,  0,  0, -1, -1,  0,  0,  1]], dtype=np.int32)
 
-    def __init__(self, tiles, width, height):
-        self.tiles = tiles
+    def __init__(self, opaque_tiles, explored_tiles, width, height):
+        self.opaque_tiles = opaque_tiles
+        self.explored_tiles = explored_tiles
         self.fov_id = np.zeros((width, height), dtype=np.int32)
 
     def do_fov(self, origin):
@@ -44,14 +45,14 @@ class FieldOfView:
                     if dx**2 + dy**2 < radius_sq:
                         self._light(o_fov_id, X, Y)
                     if blocked:
-                        if not self.tiles[X][Y].transparent:
+                        if self.opaque_tiles[X, Y]:
                             new_start = r_slope
                             continue
                         else:
                             blocked = False
                             start = new_start
                     else:
-                        if not self.tiles[X][Y].transparent and j < radius:
+                        if self.opaque_tiles[X, Y] and j < radius:
                             blocked = True
                             self._cast_light(o_fov_id, ox, oy, radius, j+1,
                                              start, l_slope, xx, xy, yx, yy)
@@ -60,5 +61,5 @@ class FieldOfView:
                 break
 
     def _light(self, origin_fov_id, x, y):
-        self.tiles[x][y].explored = True
+        self.explored_tiles[x, y] = True
         self.fov_id[x, y] = origin_fov_id

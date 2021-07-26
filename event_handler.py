@@ -12,13 +12,13 @@ class EventHandler:
         action = {}
         for cmd_domain in self.cmd_domains:
             if cmd_domain == 'movement':
-                if event == blt.TK_KP_8:
+                if event == blt.TK_KP_8 or event == blt.TK_UP:
                     action['move'] = [0, -1]
-                elif event == blt.TK_KP_2:
+                elif event == blt.TK_KP_2 or event == blt.TK_DOWN:
                     action['move'] = [0, 1]
-                elif event == blt.TK_KP_4:
+                elif event == blt.TK_KP_4 or event == blt.TK_LEFT:
                     action['move'] = [-1, 0]
-                elif event == blt.TK_KP_6:
+                elif event == blt.TK_KP_6 or event == blt.TK_RIGHT:
                     action['move'] = [1, 0]
                 elif event == blt.TK_KP_7:
                     action['move'] = [-1, -1]

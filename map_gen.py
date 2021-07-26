@@ -2,18 +2,6 @@ from bearlibterminal import terminal as blt
 import numpy as np
 import time
 
-import populate
-
-class Tile:
-    def __init__(self, blocked=True, transparent=False):
-        self.blocked = blocked
-        self.transparent = transparent
-        self.explored = False
-    # replace this class with bit arrays:
-        # blocked bit array
-        # explored bit array
-        # transparent bit array
-
 class Level:
     def __init__(self, width, height):
         blt.refresh()
@@ -23,13 +11,12 @@ class Level:
         self.blocking_tiles = np.ones((width, height), dtype=int)
         self.opaque_tiles = np.ones((width, height), dtype=int)
         self.explored_tiles = np.zeros((width, height), dtype=int)
-        #self.tiles = [[Tile() for j in range(height)] for i in range(width)]
 
     def render(self):
         for x in range(self.width):
             for y in range(self.height):
-                tile = self.tiles[x][y]
-                if tile.blocked:
+                blocking = self.blocking_tiles[x, y]
+                if blocking:
                     blt.print(x, y, "[color=70,70,90]#") 
                 else:
                     blt.print(x, y, "[color=220,220,150].")
@@ -82,7 +69,7 @@ class Level:
             self._connect_rooms(side_rooms, display, connect_last=False)
             #time.sleep(0.5)
 
-        populate.populate_rooms(self.tiles, entities, rooms)
+        self.rooms = rooms
 
     def _get_loop_xys(self, cx, cy, r, s, display, dig, rotation=0):
         dx = self.center_x - cx
@@ -152,23 +139,16 @@ class Level:
             cx = x - w // 2
             cy = y - h // 2
             if self._is_room_valid(cx, cy, w, h):
-                for i in range(cx, cx+w):
-                    for j in range(cy, cy+h):
-                        self.tiles[i][j].blocked = False
-                        self.tiles[i][j].transparent = True
+                self.blocking_tiles[cx:cx+w, cy:cy+h] = 0
+                self.opaque_tiles[cx:cx+w, cy:cy+h] = 0
                 return [cx, cy, w, h]
             else:
                 tries_remaining -= 1
         return None
 
     def _is_room_valid(self, x, y, w, h):
-        for i in range(x-3, x+w+3):
-            for j in range(y-3, y+h+3):
-                if not (0 < i < self.width and 0 < j < self.height):
-                    return False
-                elif not self.tiles[i][j].blocked:
-                    return False
-        return True
+        if 0 < x-3 and self.width > x+w+3 and 0 < y-3 and self.height > y+h+3:
+            return np.all(self.blocking_tiles[x-3:x+w+3, y-3:y+h+3])
 
     def _connect_rooms(self, rooms, display, connect_last):
         if connect_last:
@@ -182,45 +162,28 @@ class Level:
                    y2 + np.random.randint(h2))
             if start[0] < end[0]:
                 if start[1] < end[1]:
-                    #self._step_connect(end[0], j)
-                    for j in range(start[1], end[1] + 1):
-                        self.tiles[end[0]][j].blocked = False
-                        self.tiles[end[0]][j].transparent = True
-                    for i in range(start[0], end[0]):
-                        self.tiles[i][start[1]].blocked = False
-                        self.tiles[i][start[1]].transparent = True
+                    self.blocking_tiles[end[0], start[1]:end[1]+1] = 0
+                    self.opaque_tiles[end[0], start[1]:end[1]+1] = 0
+                    self.blocking_tiles[start[0]:end[0], start[1]] = 0
+                    self.opaque_tiles[start[0]:end[0], start[1]] = 0
                 else:
-                    for j in range(end[1], start[1] + 1):
-                        self.tiles[start[0]][j].blocked = False
-                        self.tiles[start[0]][j].transparent = True
-                    for i in range(start[0], end[0]):
-                        self.tiles[i][end[1]].blocked = False
-                        self.tiles[i][end[1]].transparent = True
+                    self.blocking_tiles[start[0], end[1]:start[1]+1] = 0
+                    self.opaque_tiles[start[0], end[1]:start[1]+1] = 0
+                    self.blocking_tiles[start[0]:end[0], end[1]] = 0
+                    self.opaque_tiles[start[0]:end[0], end[1]] = 0
             else: 
                 if start[1] < end[1]:
-                    for j in range(start[1], end[1] + 1):
-                        self.tiles[start[0]][j].blocked = False
-                        self.tiles[start[0]][j].transparent = True
-                    for i in range(end[0], start[0]):
-                        self.tiles[i][end[1]].blocked = False
-                        self.tiles[i][end[1]].transparent = True
+                    self.blocking_tiles[start[0], start[1]:end[1]+1] = 0
+                    self.opaque_tiles[start[0], start[1]:end[1]+1] = 0
+                    self.blocking_tiles[end[0]:start[0], end[1]] = 0
+                    self.opaque_tiles[end[0]:start[0], end[1]] = 0
                 else:
-                    for j in range(end[1], start[1] + 1):
-                        self.tiles[end[0]][j].blocked = False
-                        self.tiles[end[0]][j].transparent = True
-                    for i in range(end[0], start[0]):
-                        self.tiles[i][start[1]].blocked = False
-                        self.tiles[i][start[1]].transparent = True
+                    self.blocking_tiles[end[0], end[1]:start[1]+1] = 0
+                    self.opaque_tiles[end[0], end[1]:start[1]+1] = 0
+                    self.blocking_tiles[end[0]:start[0], start[1]] = 0
+                    self.opaque_tiles[end[0]:start[0], start[1]] = 0
             if display: 
                 self.render()
                 #time.sleep(0.2)
         if connect_last:
             rooms.pop()
-
-    def _step_connect(self, start, end):
-        for i in range(end - start):
-            tile = self.tiles[start][end]
-            if self.tiles:
-                self.tiles[end[0]][j].blocked = False
-                self.tiles[end[0]][j].transparent = True
-        

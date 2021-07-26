@@ -1,23 +1,28 @@
 import numpy as np
 from actor import Actor
 
-def populate_rooms(tiles, entities, rooms, empty_room_prob=0.5):
+def populate_rooms(blocking_tiles, blocking_entities, entities, rooms, empty_room_prob=0.5):
     monsters = _read_dgn_file('./entities/monsters.dgn')
     for room in rooms:
         if np.random.rand() > empty_room_prob:
-            _place_entities(tiles, entities, room, monsters)
+            _place_entities(blocking_tiles, blocking_entities, entities, room, monsters)
 
-def _place_entities(tiles, entities, room, monsters):
+def _place_entities(blocking_tiles, blocking_entities, entities, room, monsters):
     room_x, room_y, room_w, room_h = room
     if np.random.rand() < 0.5:
-        monster_name = 'skitterling'
+        name = 'skitterling'
     else:
-        monster_name = 'robot'
-    x = np.random.randint(room_x, room_x + room_w)
-    y = np.random.randint(room_y, room_y + room_h)
-    coords = (x, y)
-    monster = Actor(monster_name, monsters[monster_name]['symbol'], coords)
-    tiles[x][y].has_blocking_entity = True
+        name = 'robot'
+    blocked = True
+    while blocked:
+        x = np.random.randint(room_x, room_x + room_w)
+        y = np.random.randint(room_y, room_y + room_h)
+        coords = (x, y)
+        if not blocking_entities[x, y]:
+            blocked = False
+        # could add condition to check for within-room walls (blocking tiles)
+    monster = Actor(name, monsters[name]['symbol'], monsters[name]['blocks'], coords)
+    blocking_entities[x, y] = 1
     entities.append(monster)
 
 def _read_dgn_file(path):
@@ -33,5 +38,4 @@ def _read_dgn_file(path):
                 att_name, att_value = line.strip().split(':')
                 attributes[att_name] = att_value
 
-    #print(entities)
     return entities

@@ -28,8 +28,8 @@ class Game:
         blt.close()
 
     def new_game(self):
-        self.player = Actor('player', '[color=amber]@', blocks=True,
-                            coords=[0, 0], fov_id=0, fov_radius=8)
+        self.player = Actor('player', '[color=amber]@', blocks=True, coords=[0, 0],
+                            health=10, attack=3, defense=3, fov_id=0, fov_radius=8)
         self.blocking_entities = np.zeros((self.width, self.height), dtype=int)
         self.entities = [self.player]
         self.level = map_gen.Level(width=self.width, height=self.height)
@@ -41,7 +41,7 @@ class Game:
                                self.width, self.height)
         self.fov.do_fov(self.player)
         self.display = Display(self.player, self.entities, self.level.blocking_tiles,
-                               self.width, self.height, self.fov.fov_id)
+                               self.level.explored_tiles, self.width, self.height, self.fov.fov_id)
         self.event_handler = EventHandler(cmd_domains=['movement', 'menu'])
 
     def _update(self, action):
